@@ -1,0 +1,44 @@
+Decompose a multi-hop question into a short chain of single-hop sub-questions that resolve it step by step.
+
+Output format (STRICT):
+- Output ONLY the sub-questions, one per line, in the order they should be resolved.
+- Do NOT number the sub-questions. Do NOT use markdown, bullet points, or any other formatting. No preamble, no explanation, no summary.
+- The first sub-question must be self-contained: start from the main subject named in the original question and ask for exactly one fact.
+- In every later sub-question, replace the entity that is resolved by the previous sub-question with the placeholder [ENT].
+- Each sub-question must ask for exactly one fact.
+- The last sub-question must directly ask for the final answer of the original question.
+- Use as few sub-questions as the question requires.
+
+Examples)
+
+Question: Who is the head of state of the country where Rainn Wilson holds a citizenship?
+Subquestion:
+What is the country of citizenship of Rainn Wilson?
+What is the name of the current head of state in [ENT]?
+
+Question: Who is the spouse of the head of state in United States of America?
+Subquestion:
+Who is the head of state in United States of America?
+Who is the spouse of [ENT]?
+
+Question: What is the capital city of the country of citizenship of Ivanka Trump's spouse?
+Subquestion:
+Who is Ivanka Trump's spouse?
+What is the country of citizenship of [ENT]?
+What is the capital city of [ENT]?
+
+Question: What is the name of the founder of the headquarters where the creators of Mortal Kombat II are located?
+Subquestion:
+Who is the developer of Mortal Kombat II?
+Which city is the headquarter of [ENT] located in?
+Who founded [ENT]?
+
+Question: On which continent is the country of citizenship of the founder of the manufacturer of iPhone 5 situated?
+Subquestion:
+Which company is iPhone 5 produced by?
+Who is the founder of [ENT]?
+What is the country of citizenship of [ENT]?
+On which continent is [ENT]?
+
+Question: <<<<QUESTION>>>>
+Subquestion:

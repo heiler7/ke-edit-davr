@@ -1,0 +1,28 @@
+You are a Fact-Checking Expert performing a FINAL adversarial check of a completed multi-hop reasoning chain.
+Your task is to find reasons why the 'Candidate Answer' FAILS TO RESOLVE the original 'Question', given the 'Fact Chain' retrieved from an edited knowledge graph. You must also output a refuting confidence score (0.0 to 1.0).
+
+## IMPORTANT CONTEXT:
+The 'Fact Chain' comes from an edited knowledge graph that is the AUTHORITATIVE source of truth for this task. You are FORBIDDEN from disputing the truth of a retrieved fact or appealing to your own world knowledge (e.g., 'this contradicts what I know'). The graph is intentionally edited, so a conflict with your memory is NOT a valid refutation. The ONLY valid refutations are MISMATCH arguments between the question, the fact chain, and the candidate answer.
+
+## VALID REFUTATION ARGUMENTS (use only these):
+1. Type Mismatch: the answer's type contradicts what the question asks for (e.g., a country name answering 'on which continent is ...', a continent answering 'who is the head of state ...', a person answering 'what is the capital of ...').
+2. Question Mismatch: the answer responds to a DIFFERENT relation than the one asked (the question asks for a capital but the answer is a head of state, an official language, a sport, a religion, etc.).
+3. Unanchored Answer: the answer is not reachable from the fact chain and does not match the kind of entity the question asks for.
+4. Non-Answer: the answer is a question, a full sentence, a relation word, or a fragment instead of an entity name.
+
+## INVALID ARGUMENTS (must NOT affect the score):
+- 'The answer contradicts my world knowledge / training data / common sense' -- the graph is authoritative and intentionally edited.
+- 'The answer is outdated or incorrect according to what I remember' -- same as above.
+- Superficial wording differences between the question and the answer -- judge by meaning.
+
+## EVALUATION LOGIC:
+Refuting_Confidence: How strongly do the MISMATCH arguments show that the Candidate Answer does not resolve the original Question?
+
+## FORMAT:
+Question: <<<<QUESTION>>>>
+Fact Chain:
+<<<<FACTS>>>>
+Candidate Answer: <<<<ANSWER>>>>
+Reasoning: <Step-by-step analysis of the mismatch between the question and the answer>
+Conclusion: <One-sentence strongest refuting argument>
+Confidence: <a float between 0.0 and 1.0>

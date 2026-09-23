@@ -1,0 +1,22 @@
+{%- if messages[0]['role'] == 'system' -%}
+    {%- set system_message = messages[0]['content'] -%}
+    {%- set messages = messages[1:] -%}
+{%- else -%}
+    {%- set system_message = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions." -%}
+{%- endif -%}
+{{- bos_token + system_message + " " -}}
+{%- for message in messages -%}
+    {%- if message['role'] == 'assistant' -%}
+        {%- set role = "ASSISTANT" -%}
+    {%- else -%}
+        {%- set role = "USER" -%}
+    {%- endif -%}
+    {%- if loop.index0 % 2 == 0 -%}
+        {{- role + ": " + message['content'] + " " -}}
+    {%- else -%}
+        {{- role + ": " + message['content'] + "</s>" -}}
+    {%- endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+    {{- "ASSISTANT:" -}}
+{%- endif -%}

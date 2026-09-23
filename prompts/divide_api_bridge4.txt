@@ -1,0 +1,63 @@
+Decompose a multi-hop question into a chain of single-hop sub-questions: each sub-question asks for exactly ONE knowledge-graph fact, and resolving them in order answers the original question.
+
+LENGTH RULE (hard constraint):
+- Output EXACTLY 2, 3, or 4 sub-questions, one per line, in the order they should be resolved. Never 1 line, never 5 or more.
+- NEVER output a single line: every question here is multi-hop, and a 1-line output always means two facts were merged into it. Fix: split that line at its second fact.
+- NEVER output 5 or more lines: that always means a redundant line or one fact split in two. Fix: delete the line whose answer adds no new fact.
+- Self-check before answering: re-read the original question, count the distinct facts that must be looked up one by one, count your lines; the two counts must be equal and must land in 2-4.
+
+Output format (STRICT):
+- Output ONLY the sub-questions, one per line. No numbering, no markdown, no bullet points, no preamble, no explanation, no summary.
+- The first sub-question must be self-contained: start from the main subject named in the original question and ask for exactly one fact. It must NOT be the original question itself or a paraphrase of it.
+- In every later sub-question, replace the entity resolved by the previous sub-question with the placeholder [ENT], and ask for exactly one NEW fact that no earlier line already provides.
+- The last sub-question must ask for exactly what the original question asks (if the question asks 'which continent', the last sub-question must ask for the continent -- not the capital, not the country, not anything else).
+
+ONE FACT PER LINE:
+- Each sub-question must be answerable from the knowledge graph by a single triple: one entity, one relation, one value.
+- A line with two verbs, or two chained 'of/that/where' clauses, holds two facts and MUST be split into two lines. WRONG: 'Which country was the sport that X plays created in?' RIGHT: 'Which sport is X associated with?' then 'Which country was [ENT] created in?'.
+- Do NOT over-split either: never write two lines for one fact, never re-ask a fact already asked with different wording (WRONG pair: 'Who founded [ENT]?' + 'Who is the founder of [ENT]?'), never insert a filler line such as 'What is the name of [ENT]?'.
+- Every line after the first must consume the previous line's answer and produce a fact that the next line or the final answer needs.
+
+BRIDGE RULE: the asked relation often belongs to a DIFFERENT entity than the one named in the question. A song has no director or manager -- the band that performed it does; a work's founding place may belong to its performer. When the asked relation does not plausibly belong to the named entity, FIRST add a sub-question that resolves the intermediate entity (e.g. 'Who performed X?'), then ask the target relation about [ENT].
+
+SPORT RULE: when a question says which country a person or thing 'comes from' / 'is from' / 'where their sport originated', and that person is associated with a sport, it asks for the country where the SPORT was created -- NOT the person's country of citizenship or place of birth. First ask 'Which sport is [person] associated with?', then 'Which country was [ENT] created in?'. Never interpret 'comes from' as citizenship.
+
+Examples)
+
+Question: Who is the head of state of the country where Rainn Wilson holds a citizenship?
+Subquestion:
+What is the country of citizenship of Rainn Wilson?
+What is the name of the current head of state in [ENT]?
+
+Question: Where was "Master of Puppets" created?
+Subquestion:
+Who performed Master of Puppets?
+Where was [ENT] founded?
+
+Question: What language can the spouse of Jane Foster speak, write, or sign?
+Subquestion:
+Who performed Jane Foster?
+Who is [ENT] married to?
+What language does [ENT] speak?
+
+Question: What is the capital of the country where Jamie Ward's sport originated?
+Subquestion:
+Which sport is Jamie Ward associated with?
+Which country was [ENT] created in?
+What is the capital of [ENT]?
+
+Question: Who is the head of state of the country where the sport featured in the 2005 World Series originated from?
+Subquestion:
+Which sport is 2005 World Series associated with?
+Which country was [ENT] created in?
+What is the name of the current head of state in [ENT]?
+
+Question: On which continent is the country of citizenship of the founder of the manufacturer of iPhone 5 situated?
+Subquestion:
+Which company is iPhone 5 produced by?
+Who is the founder of [ENT]?
+What is the country of citizenship of [ENT]?
+On which continent is [ENT]?
+
+Question: <<<<QUESTION>>>>
+Subquestion:

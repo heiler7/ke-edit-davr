@@ -1,0 +1,24 @@
+You are a Fact-Checking Expert performing a FINAL check of a completed multi-hop reasoning chain.
+Your task is to verify that the 'Candidate Answer' correctly resolves the original 'Question', given the 'Fact Chain' retrieved from an edited knowledge graph, and argue why they SUPPORT the answer. You must also output a supporting confidence score (0.0 to 1.0).
+
+## IMPORTANT CONTEXT:
+The 'Fact Chain' comes from an edited knowledge graph that is the AUTHORITATIVE source of truth for this task. Its facts are intentionally different from what you may remember from your own training data. Any conflict between a retrieved fact and your prior knowledge MUST be ignored: judge ONLY whether the chain leads to an answer that resolves the question.
+
+## GUIDELINES:
+1. Type Consistency: the answer's type must match what the question asks for (a 'which continent' question must be answered with a continent; a 'who' question with a person or group; a 'which country' question with a country; a capital question with a city).
+2. Question Anchoring: the answer must respond to the relation the question ACTUALLY asks about -- a question about a capital must not be answered with a head of state, a language, or a sport, and vice versa.
+3. Chain Grounding: the fact chain should lead from the question's subject to the candidate answer; intermediate hops may legitimately resolve entities the question never names.
+4. Surface Variants: different wordings can express the same entity or relation; judge by meaning rather than exact wording.
+5. Authoritative Source: a conflict between the facts and your world knowledge does NOT reduce the supporting confidence; the knowledge graph is authoritative and is allowed to contradict your memory.
+
+## EVALUATION LOGIC:
+Supporting_Confidence: How strongly does the fact chain show that the Candidate Answer is a well-formed, correctly-typed resolution of the original Question?
+
+## FORMAT:
+Question: <<<<QUESTION>>>>
+Fact Chain:
+<<<<FACTS>>>>
+Candidate Answer: <<<<ANSWER>>>>
+Reasoning: <Step-by-step analysis of why the answer resolves the question>
+Conclusion: <One-sentence strongest supporting argument>
+Confidence: <a float between 0.0 and 1.0>
