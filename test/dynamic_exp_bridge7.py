@@ -157,15 +157,15 @@ print("ANSWER_MODEL: ",ANSWER_MODEL)
 
 
 
-DIVIDE_API_BASE = "https://api.llm.ustc.edu.cn/v1"
-DIVIDE_API_KEY = "sk-TVcESF80StWSNz7m874Keg"                          # <-- fill in your campus API key
+DIVIDE_API_BASE = "https://.../v1"
+DIVIDE_API_KEY = ""                          # <-- fill in your campus API key
 DIVIDE_MODEL = "deepseek-v4-flash"
 
 
 
 
 
-VERIFY_API_BASE = "http://localhost:7004/v1"
+VERIFY_API_BASE = "http://localhost:7002/v1"
 VERIFY_API_KEY = ""
 VERIFY_MODEL = "qwen3-8b" 
 
