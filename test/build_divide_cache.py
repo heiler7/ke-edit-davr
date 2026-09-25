@@ -15,22 +15,11 @@ except ImportError:  # progress bar is cosmetic, never block a cache build
     def tqdm(x, **kwargs):
         return x
 
-# --- endpoint config: same defaults as dynamic_exp_bridge3.py / bridge4 ------
-# (all overridable on the command line; DIVIDE_MODEL_DEFAULT matches the
-#  DIVIDE_MODEL constant of dynamic_exp_bridge4.py so the default cache file
-#  name lines up with the 'auto' mode of that script)
-DIVIDE_API_BASE = "https://api.llm.ustc.edu.cn/v1"
-DIVIDE_API_KEY = "sk-TVcESF80StWSNz7m874Keg"      
-# DIVIDE_MODEL_DEFAULT = "deepseek-v4-pro"
+
+DIVIDE_API_BASE = "https://.../v1"
+DIVIDE_API_KEY = ""      
 DIVIDE_MODEL_DEFAULT = "deepseek-flash"
 
-# DIVIDE_API_BASE = "https://ark.cn-beijing.volces.com/api/coding/v3"
-# DIVIDE_API_KEY = "b461f39b-b499-4bb2-82cb-009f13525f96"
-# DIVIDE_MODEL_DEFAULT = "deepseek-v4-pro"
-
-# DIVIDE_API_BASE = "http://localhost:7005/v1"
-# DIVIDE_API_KEY = ""      
-# DIVIDE_MODEL_DEFAULT = "qwen3-8b"
 
 print("DIVIDE_API_BASE: ", DIVIDE_API_BASE)
 
@@ -38,12 +27,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_PROMPT_FILE = os.path.join(_HERE, '..', 'prompts', 'divide_api_bridge4.txt')
 DEFAULT_DATASET_DIR = os.path.join(_HERE, '..', 'datasets')
 
-# --- openai SDK compatibility layer ------------------------------------------
-# VERBATIM copy from dynamic_exp_bridge3.py: works with both openai>=1.0
-# (client API) and openai<1.0 (module-level API, e.g. 0.26.1). On a server
-# with a modern openai installed, the pre-1.0 attribute accesses would raise
-# AttributeError on EVERY call, which the bare retry loop below would then
-# swallow as an endless "openai error, retry".
+
 try:
     # openai>=1.0
     from openai import OpenAI as _OpenAI
@@ -58,10 +42,7 @@ try:
 except ImportError:
     # openai<1.0 (e.g. 0.26.1)
     _OPENAI_LEGACY = True
-    # transport timeout for the old SDK: module-level only. A per-call
-    # request_timeout kwarg is NOT understood by 0.26.x -- it would be
-    # serialized into the request body and this gateway 400-rejects unknown
-    # body params (proven by the enable_thinking probe).
+
     openai.request_timeout = 300
 
 
@@ -75,11 +56,7 @@ def chat_completion(api_key, api_base, model, messages, **kwargs):
         client = _get_client(api_key, api_base)
         response = client.chat.completions.create(model=model, messages=messages, **kwargs)
         content = response.choices[0].message.content
-    # some gateways occasionally return HTTP 200 with content=None (observed
-    # on the divide endpoint during the full 322-case run); the caller's
-    # string parsing would then crash (output.split / re.findall on None).
-    # Surface it as an exception so the existing retry loops handle it like a
-    # transport error instead of killing a multi-hour run.
+
     if content is None or not str(content).strip():
         raise ValueError("empty chat completion content (content=None or blank)")
     return content
@@ -94,12 +71,7 @@ def list_first_model(api_key, api_base):
     return client.models.list().data[0].id
 
 
-# --- divide request: VERBATIM process from dynamic_exp_bridge3.py ------------
-# Same system message, same sampling parameters (temperature=0,
-# stop=["\nQuestion:"], zero penalties), same infinite retry loop with
-# sleep(10). Only difference: endpoint/model are parameters instead of the
-# module globals of the original, so this file can pick another divide
-# model (--model) without touching dynamic_exp_bridge3.py.
+
 DIVIDE_SYSTEM_MESSAGE = "You are a question decomposition assistant. You decompose a multi-hop question into single-hop sub-questions, one per line, using [ENT] placeholders for entities resolved by previous sub-questions. Each sub-question must match exactly one knowledge-graph fact: never merge two facts into one, and never skip an intermediate lookup. When unsure whether a line covers one or two facts, split it into two lines -- under-splitting is worse than over-splitting, and typical questions need 2 to 4 sub-questions. If the asked relation plausibly belongs not to the named entity but to a related one (a song has no manager -- its performer does), first resolve that intermediate entity with its own sub-question. You output only the sub-questions, with no numbering and no extra text."
 
 
@@ -128,12 +100,6 @@ def run_llm_divide(query, api_key=DIVIDE_API_KEY, api_base=DIVIDE_API_BASE, mode
 
 
 def parse_sub_questions(output):
-    # VERBATIM copy of the sub-question normalisation block of
-    # dynamic_exp_bridge3.py (filter empty lines; strip list numbering and a
-    # possible 'Subquestion:' echo so marker noise cannot reach the
-    # retrievers). Keep the two copies in sync: the experiment re-parses the
-    # cached raw output with its own inline copy, they must agree line for
-    # line. The result is stored in the cache for inspection/reporting only.
     sub_questions = []
     for s in output.split('\n'):
         s = re.sub(r'(?i)^subquestions?\s*:?\s*', '', s.strip())
@@ -168,9 +134,6 @@ class DivideCache:
                             'divide_cache_%s_%s.json' % (dataset, tag))
 
     def set_prompt(self, prompt_text):
-        # entries are only reused when produced with the SAME divide
-        # template: a v4 -> v5 template change invalidates old entries
-        # automatically instead of silently leaking stale decompositions
         self.prompt_sha1 = hashlib.sha1(prompt_text.encode('utf-8')).hexdigest()
         return self.prompt_sha1
 
@@ -183,9 +146,6 @@ class DivideCache:
             with open(self.path, 'r', encoding='utf-8') as f:
                 blob = json.load(f)
         except (ValueError, OSError) as e:
-            # never destroy a half-written / corrupt file: move it aside and
-            # start empty (the rebuild is pure API cost, no data of the
-            # experiment itself is lost)
             backup = self.path + '.corrupt-' + time.strftime('%Y%m%d-%H%M%S')
             try:
                 os.replace(self.path, backup)
@@ -237,8 +197,6 @@ class DivideCache:
         return sum(1 for e in self.entries.values() if self._usable(e))
 
     def put(self, question, output, model=None):
-        # 'output' is stored raw; 'sub_questions' (same parsing as the
-        # experiment) is stored for offline inspection only
         self.entries[question] = {
             'model': model or self.meta.get('model', ''),
             'prompt_sha1': self.prompt_sha1,
@@ -248,19 +206,11 @@ class DivideCache:
         self._dirty += 1
 
     def maybe_save(self, every=20):
-        # throttled incremental save: a multi-hour build must not lose all
-        # progress to a crash / Ctrl-C, but rewriting a multi-MB JSON after
-        # every single question is wasteful
         if self._dirty and self._dirty >= every:
             self.save()
 
 
 def collect_questions(data, limit=None):
-    # every question the experiment can ever ask: bridge3 walks ALL cases of
-    # the (shuffled) dataset and every paraphrase in d['questions']; the
-    # shuffle only changes the ORDER, not the SET, so an in-file-order sweep
-    # covers everything regardless of --seed / --edit. Returns (questions in
-    # first-seen order, question -> gold hop count of its case).
     questions = []
     seen = set()
     hop_of = {}
@@ -277,7 +227,7 @@ def collect_questions(data, limit=None):
 
 
 def main():
-    try:  # windows console + non-ascii model outputs: never die on a print
+    try:  
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     except Exception:
         pass
@@ -309,8 +259,7 @@ def main():
         print("WARNING: api key is empty -- every request will be rejected with "
               "401 and retried forever. Pass --api_key or set DIVIDE_API_KEY.")
 
-    # resolve the model id first so the default cache filename (which embeds
-    # it) lines up with the 'auto' mode of dynamic_exp_bridge3.py
+
     model = '' if args.model == 'auto' else args.model
     if not model:
         for _ in range(3):
@@ -374,14 +323,7 @@ def main():
         print("[divide-cache] saved %d entries (%d decomposed this run) to %s"
               % (len(cache.entries), done, cache_path))
 
-    # ---- offline report -------------------------------------------------------
-    # 1) sub-question count distribution over all usable entries
-    # 2) hop-count mismatch vs the gold single_hops of each case: the
-    #    322-case post-mortem of bridge3 found under-splitting (fewer
-    #    sub-questions than gold hops) was the single largest Hop-Acc failure
-    #    bucket (79/118), so the builder surfaces mismatches BEFORE the
-    #    expensive run. A mismatch is a warning, not a verdict: the runtime
-    #    can legitimately add hops (pos-bridge appends the position hop).
+
     hist = collections.Counter()
     fewer = equal = more = 0
     under_split = []
